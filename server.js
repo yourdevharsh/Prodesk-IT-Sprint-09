@@ -1,8 +1,23 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 const app = express();
 
-let blogPosts = [];
+app.use(express.json());
+
+let blogPosts = [
+  {
+    id: "12345",
+    content: "Content 1",
+    likes: "39280",
+  },
+  {
+    id: "23456",
+    content: "Content 2",
+    likes: "583",
+  },
+];
 
 const logger = (req, res, next) => {
   const currentTime = new Date();
@@ -10,11 +25,40 @@ const logger = (req, res, next) => {
   next();
 };
 
-app.get("/posts", logger, (req, res) => {
+const verifyJwt = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "Missing Token" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).send("Invalid Token");
+    }
+
+    // No full implementation of JWT as it is not required in project.
+    next();
+  });
+};
+
+app.post("/login", (req, res) => {
+  const { name, email, password } = req.body;
+  jwt.sign(
+    { data: JSON.stringify({ name: name, email: email }) },
+    process.env.JWT_SECRET,
+    { expiresIn: "720h" },
+  );
+  res.json({ token: token });
+});
+
+app.get("/posts", logger, verifyJwt, (req, res) => {
   res.json({ posts: blogPosts });
 });
 
-app.get("/posts/:id", (req, res) => {
+app.get("/posts/:id", logger, verifyJwt, (req, res) => {
   const id = req.params.id;
   const result = blogPosts.filter((post) => {
     post.id == id;
@@ -22,19 +66,22 @@ app.get("/posts/:id", (req, res) => {
   res.josn({ post: result });
 });
 
-app.post("/posts", (req, res) => {
+app.post("/posts", logger, verifyJwt, (req, res) => {
   res.send("Hello");
 });
 
-app.put("/posts/:id", (req, res) => {
-  res.send("Hello");
-});
-
-app.delete("/posts/:id", (req, res) => {
-  const id = req.params.id;
+app.put("/posts/:id", logger, verifyJwt, (req, res) => {
   
 });
 
-app.listen(5000, () => {
+app.delete("/posts/:id", logger, verifyJwt, (req, res) => {
+  const id = req.params.id;
+
+  blogPosts = blogPosts.filter((post) => {
+    post.id != id;
+  });
+});
+
+app.listen(process.env.PORT, () => {
   console.log("Server listening");
 });
