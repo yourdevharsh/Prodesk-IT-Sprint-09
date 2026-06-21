@@ -63,19 +63,37 @@ app.get("/posts/:id", logger, verifyJwt, (req, res) => {
   const result = blogPosts.filter((post) => {
     post.id == id;
   });
-  res.josn({ post: result });
+  res.josn({ post: result[0] });
 });
 
 app.post("/posts", logger, verifyJwt, (req, res) => {
-  res.send("Hello");
+  const { id, content, likes } = req.body;
+
+  if (id === undefined || content === undefined || likes === undefined) {
+    req.status(422).json({ message: "Invalid ID" });
+  }
+
+  blogPosts.push({
+    id: id,
+    content: content,
+    likes: likes,
+  });
 });
 
 app.put("/posts/:id", logger, verifyJwt, (req, res) => {
-  
+  const { id, content, likes } = req.body;
+
+  if (id === undefined) {
+    req.status(422).json({ message: "Invalid ID" });
+  }
 });
 
 app.delete("/posts/:id", logger, verifyJwt, (req, res) => {
   const id = req.params.id;
+
+  if (id === undefined) {
+    req.status(422).json({ message: "Invalid ID" });
+  }
 
   blogPosts = blogPosts.filter((post) => {
     post.id != id;
